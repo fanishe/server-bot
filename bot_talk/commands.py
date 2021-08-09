@@ -10,7 +10,7 @@ from states.state import AddNewCommand, WhiteListAdd
 from database.comandos import put_new_script
 from scripts import full_output_to_user
 
-CMD = config.get_param('commands', 'whitelist_add')
+_CMD = config.get_param('commands', 'whitelist_add')
 
 async def cmd_start(message: Message):
     ''' Точка входа в бота, тут можно вставить необходимые настройки, которые нужны перед стартом

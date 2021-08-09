@@ -13,8 +13,9 @@ import asyncio
 import aiosqlite
 
 from loader import config
+from database import run_select
 
-DB = config.get_param('calibre', 'database')
+_DB = config.get_param('calibre', 'database')
 
 class bidirectional_iterator(object):
     ''' объект, который возвращает 5 следующих
@@ -113,7 +114,7 @@ async def books_info():
             pubdate
         from books;
     '''
-    result = await run_select(q)
+    result = await run_select(_DB, q)
     books_res = []
     num = 0
     for res in result:
@@ -127,11 +128,3 @@ async def books_info():
     # и prev() предыдущие 5 книг из списка
     bi = bidirectional_iterator(books_res)
     return bi
-
-async def run_select(query, vals=None):
-    async with aiosqlite.connect(DB) as conn:
-        async with conn.cursor() as cur:
-            await cur.execute(query, vals)
-            await conn.commit()
-            res = await cur.fetchall()
-            return res

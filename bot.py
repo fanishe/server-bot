@@ -8,8 +8,6 @@ logging.basicConfig(
 from aiogram import Bot, Dispatcher, executor, types
 
 from loader import dp, config
-# from bot_messages import set_default_messages
-# from bot_commands import set_default_commands
 
 WEBHOOK_HOST = config.webhook_host
 WEBHOOK_PATH = config.webhook_host

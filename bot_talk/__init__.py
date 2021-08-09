@@ -1,18 +1,9 @@
 from aiogram import Dispatcher
-from states.state import AddNewCommand, WhiteListAdd
+from states import *
 
-from .commands import (
-        cmd_help,
-        cmd_start,
-        add_new_command,
-        fin_add_new_command,
-        cancel,
-        whitelist_add,
-        fin_whitelist_add,
-        )
+from .commands import *
 
-# from .messages import (
-#         )
+# from .messages import *
 
 def setup(dp: Dispatcher):
     dp.register_message_handler(cmd_help, commands='help')

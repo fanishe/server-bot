@@ -8,25 +8,25 @@ from scripts import books_info
 from loader import dp, config, go_next
 
 
-RUN_COMMANDS = config.get_param('buttons', 'run_commands')
-BOOKS = config.get_param('buttons', 'Books')
-URL = config.get_param('calibre', 'url')
+_RUN_COMMANDS = config.get_param('buttons', 'run_commands')
+_BOOKS = config.get_param('buttons', 'Books')
+_URL = config.get_param('calibre', 'url')
 
-loop = asyncio.get_event_loop()
-GEN = loop.run_until_complete(books_info())
+_loop = asyncio.get_event_loop()
+_GEN = _loop.run_until_complete(books_info())
 
 async def incoming_message_handler(msg: Message):
     ''' Обработчик всех входящих сообщений
     '''
-    if msg.text == RUN_COMMANDS:
+    if msg.text == _RUN_COMMANDS:
         answ = 'Выберите команду'
         inl_kb = await get_cmd_for_ikb()
 
         await msg.answer(answ, reply_markup=inl_kb)
 
-    elif msg.text == BOOKS:
-        GEN.reset()
-        await send_book_info(msg, GEN.next())
+    elif msg.text == _BOOKS:
+        _GEN.reset()
+        await send_book_info(msg, _GEN.next())
 
     else:
         answ = 'try again'
@@ -41,7 +41,7 @@ async def send_book_info(msg: Message, books_data: list, edit:bool=False):
 
     sms = 'Книги для редактирования:\n'
     for book in books:
-        sms += f'{book.num}) <a href="{URL}{book.id_}">{book.title}</a>\n'
+        sms += f'{book.num}) <a href="{_URL}{book.id_}">{book.title}</a>\n'
     inl_kb = await get_go_next_ikb()
 
     if edit:
@@ -57,7 +57,7 @@ async def book_handler(query: CallbackQuery, callback_data: dict):
     action = callback_data.get('action')
     if action == 'go_next':
         try:
-            data = GEN.next()
+            data = _GEN.next()
         except StopIteration:
             logging.info(f"StopIteration")
             await query.answer(text='Это была последняя позиция', show_alert=True)
@@ -68,7 +68,7 @@ async def book_handler(query: CallbackQuery, callback_data: dict):
 
     else:
         try:
-            data = GEN.prev()
+            data = _GEN.prev()
         except StopIteration:
             logging.info(f"StopIteration")
             await query.answer(text='Это была первая позиция', show_alert=True)

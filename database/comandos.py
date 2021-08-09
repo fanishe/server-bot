@@ -19,7 +19,7 @@ from loader import config
 
 
 
-DB = config.get_param('commands', 'database')
+_DB = config.get_param('commands', 'database')
 
 def get_not_iterable(result):
     logging.info(f"Start strip {result}")
@@ -35,7 +35,7 @@ async def put_new_script(name, cmd, comment=None, editable=0):
     '''
     commentary = comment or 'null'
     args = (name, cmd, commentary, editable)
-    await run_query(q, args)
+    await run_query(_DB, q, args)
 
 async def put_new_script_with_return_row(name, cmd, comment=None, editable=1):
     q = '''
@@ -45,24 +45,24 @@ async def put_new_script_with_return_row(name, cmd, comment=None, editable=1):
     '''
     commentary = comment or 'null'
     args = (name, cmd, commentary, editable)
-    res = await run_select(q, args)
+    res = await run_select(_DB, q, args)
 
 async def delete_script(script_id):
     q = 'delete from scripts where script_id = ?'
     args = script_id,
-    await run_query(q, args)
+    await run_query(_DB, q, args)
 
 async def get_script_name_by_id(script_id):
     q = 'select script_name from scripts where script_id = ?'
-    return  await run_select(q, (script_id,))
+    return  await run_select(_DB, q, (script_id,))
 
 async def get_script_command_by_id(script_id):
     q = 'select command from scripts where script_id = ?'
-    return await run_select(q, (script_id,))
+    return await run_select(_DB, q, (script_id,))
 
 async def get_all_scripts_from_db():
     q = 'select * from scripts'
-    return await run_select(q)
+    return await run_select(_DB, q)
 
 async def get_script_from_db(name):
     q = '''
@@ -70,7 +70,7 @@ async def get_script_from_db(name):
         where script_name = (?)
     '''
     args = (name, )
-    res = await run_select(q, args)
+    res = await run_select(_DB, q, args)
 
 async def create_table_scripts():
     q = '''
@@ -82,16 +82,16 @@ async def create_table_scripts():
                 editable BOOL DEFAULT FALSE
                 )
     '''
-    await run_query(q)
+    await run_query(_DB, q)
 
-async def run_query(query, vals=None):
-    async with aiosqlite.connect(DB) as conn:
+async def run_query(db, query, vals=None):
+    async with aiosqlite.connect(db) as conn:
         async with conn.cursor() as cur:
             await cur.execute(query, vals)
             await conn.commit()
 
-async def run_select(query, vals=None):
-    async with aiosqlite.connect(DB) as conn:
+async def run_select(db, query, vals=None):
+    async with aiosqlite.connect(db) as conn:
         async with conn.cursor() as cur:
             await cur.execute(query, vals)
             await conn.commit()

@@ -6,10 +6,12 @@ from collections import namedtuple
 import logging
 
 from aiogram import types
+
 from loader import config
+from database import run_select
 
 
-DB = config.get_param('calibre', 'database')
+_DB = config.get_param('calibre', 'database')
 
 async def full_output_to_user(back, command: str, edit=True):
     output = check_output(
@@ -60,7 +62,7 @@ async def scan_books(cb: types.CallbackQuery, command: str):
 
 async def parse_digits(cb: types.CallbackQuery, line: list):
     '''
-        Added book ids: 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216
+        Added book ids: 199, 200, 201, ...
     '''
     str_digits = line.split('ids:')[1].split(',')
     nums = [ num.strip() for num in str_digits ]
@@ -77,18 +79,9 @@ async def parse_digits(cb: types.CallbackQuery, line: list):
 
 async def get_data_from_books_db(numbers):
     q = '''
-    select title from books
-    where id in (
+        select title from books
+        where id in (
     ''' + '?, ' * len(numbers[:-1])
     q += '? );'
-    res = await run_select(q, numbers)
+    res = await run_select(_DB, q, numbers)
     return res
-
-async def run_select(query, vals=None):
-    async with aiosqlite.connect(DB) as conn:
-        async with conn.cursor() as cur:
-            await cur.execute(query, vals)
-            await conn.commit()
-            res = await cur.fetchall()
-            return res
-
