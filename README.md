@@ -85,12 +85,14 @@ from books;
 ## Выполнение команды без запрашивания пароля
 
 Чтобы команда исполнялась без пароля и это было более-менее сесурно надо:
-1. записать команду в shell скрипт и сохранить ее `echo sudo some cmd -run`
+1. записать команду в shell скрипт и сохранить ее `echo 'sudo some cmd -run' > /path/to/script.sh`
 1. Присвить права на исполнение только руту `sudo chown root:root /path/to/script.sh && sudo chmod 700 /path/to/script.sh`
 1. Выполнить команду `sudo visudo` с помощью Nano модно будет редактировать документ
 1. В конец добавить строку: `username  ALL=(ALL) NOPASSWD: /path/to/script.sh`
-    > Чтобы изменить Nano на другой редактор надо выполнить команду
-    > ` sudo update-alternatives --config editor`
+    > Где `username` это имя пользователя, от чьего имени будет запускаться команда. Чтобы узнать его в бот надо сохранить команду `whoami`, чтобы он вернул имя пользователя
+
+#### Чтобы изменить Nano на другой редактор надо выполнить команду
+1. ` sudo update-alternatives --config editor`
     ```
     There are 6 choices for the alternative editor (providing /usr/bin/editor).
 
