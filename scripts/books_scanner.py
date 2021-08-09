@@ -1,10 +1,10 @@
 '''
-TODO: Скан книг:
+Скан книг:
     [v] Сделать запрос в БД metadta.db
     [v] Получить список книг, в которых не все поля заполнены
     [v] Послать смс в котором указаны эти книги как ссылка для редактирования
         https://books.domain/calibre/book/<ID> - show
-    [v] Показать первые ?? (5) ?? книг и внизу инлайн кнопки
+    [v] Показать первые (регулируется в настройках, по умолчанию - 5) книг и внизу инлайн кнопки
         [v] > След 5 книг
         [v] < Пред 5, если есть
 '''
@@ -16,17 +16,18 @@ from loader import config
 from database import run_select
 
 _DB = config.get_param('calibre', 'database')
+_QUANT = int(config.get_param('calibre', 'show_books_quantity'))
 
-class bidirectional_iterator(object):
+class _bidirectional_iterator(object):
     ''' объект, который возвращает 5 следующих
         и 5 предыдущих книг
     '''
     def __init__(self, collection):
         self.collection = collection
         self.index = 0
-        self.step = 5
+        self.step = _QUANT
         self.start = 0
-        self.fin = 5
+        self.fin = _QUANT
         self.prev_res  = None
         self.next_res  = None
 
@@ -126,5 +127,5 @@ async def books_info():
     # Возвращает объект, который имеет два вызова
     # next() следующие 5
     # и prev() предыдущие 5 книг из списка
-    bi = bidirectional_iterator(books_res)
+    bi = _bidirectional_iterator(books_res)
     return bi

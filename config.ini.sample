@@ -14,3 +14,4 @@ database = /path/to/base.db
 [calibre]
 database = /path/to/metadata.db
 url = https://books.domain.com/calibre/book/
+show_books_quantity = 5

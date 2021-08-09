@@ -53,21 +53,21 @@ async def scan_books(cb: types.CallbackQuery, command: str):
         outputs = output.decode().split('\n')
         for line in outputs:
             if 'Added book' in line:
-                await parse_digits(cb, line)
+                await _parse_digits(cb, line)
     else:
         msg = 'Nothing to scan'
         await cb.message.edit_text(
                 msg,
                 )
 
-async def parse_digits(cb: types.CallbackQuery, line: list):
+async def _parse_digits(cb: types.CallbackQuery, line: list):
     '''
         Added book ids: 199, 200, 201, ...
     '''
     str_digits = line.split('ids:')[1].split(',')
     nums = [ num.strip() for num in str_digits ]
 
-    res = await get_data_from_books_db(nums)
+    res = await _get_data_from_books_db(nums)
     msg = '*Added books:*\n'
     for book in res:
         msg += f'`{book[0]}`\n'
@@ -77,7 +77,7 @@ async def parse_digits(cb: types.CallbackQuery, line: list):
             parse_mode='MarkdownV2'
             )
 
-async def get_data_from_books_db(numbers):
+async def _get_data_from_books_db(numbers):
     q = '''
         select title from books
         where id in (
