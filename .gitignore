@@ -1,0 +1,8 @@
+venv/*
+objects/*
+**/__pycache__
+*.db
+*.log
+*.sh
+config.ini
+testbot.py
