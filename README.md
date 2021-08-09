@@ -1,50 +1,23 @@
-# Server bot
+# Server Bot
+Бот для управления домашним сервером `Ubuntu 20.04`.
 
-# Sources:
-- [Знакомство с aiogram](https://mastergroosha.github.io/telegram-tutorial-2/quickstart/)
-    - [Форматирование сообщений](https://mastergroosha.github.io/telegram-tutorial-2/messages/)
-- [[OF.DOC.] Coroutines and Tasks](https://docs.python.org/3/library/asyncio-task.html)
-- [aiogram examples](https://github.com/aiogram/aiogram/tree/dev-2.x/examples)
-- [aiogram tutor](https://docs.aiogram.dev/en/latest/quick_start.html)
+## Реализованные возможности:
+### Запуск команд на сервере:
+* Для этого создается локальная sqlite БД и в ней таблица `scripts`
+* Можно добавлять, удалять команды черз инлайн кнопки, редактирование существующей команды пока не реализовано
 
-## Link downloader wrom WA
-- [Script to download files in a async way, using Python asyncio](https://gist.github.com/darwing1210/c9ff8e3af8ba832e38e6e6e347d9047a)
-- [[OF.DOC.] Coroutines and Tasks](https://docs.python.org/3/library/asyncio-task.html#coroutines)
+### самые частые команды:
+#### Добавление страны в белый список. 
+На моем веб-сервере через ipset установлено ограниченное количество стран, которые имеют доступ. Благодаря этой команде, я могу в одно касание добавить новую страну, которой будет открыт доступ(Реализовано на случай путешествий, или длятельных командировок). Сами исполняемые скрипты могут запускать без запроса пароля для `sudo`.
 
-```python
-    def link_worker(self, sms):
-        """обработчик ссылок"""
-        user_phone, _ = basic.user_info(sms)
+#### Ручной запуск сканирования входящей папки с книгами для `calibre` 
+Запускает `calibre` на сканирование папки в которую я добавил новые книги. В идеале это должно запускаться автоматически, но если по каким-то причинам этого не произошло, я могу сделать это вручную. После добавления книг, код подключается к БД `calibre` и достает от туда названия книг, которые были добавлены.
 
-        if sms.getType() == 'text':
-            message = sms.getBody()
-        elif sms.getType() == 'media':
-            message = sms.matched_text
-
-        logging.info(
-            'User_ID = {} sent link - {}'
-            .format(user_phone, message)
-            )
-        # Check if url is correct...
-        text, file_id = basic.check_url(message, user_phone, sms)
-
-        self.send_message(text, user_phone, sms)
-        res = self.link_download(user_phone, file_id, sms)
-
-        if res == 0: # download success
-            file_info = self.db_bot.get_file_for_task(1, file_id)
-            filename = file_info[4]
-
-            self.upload_to_athena(filename, file_id)
-            self.wait_answer_from_athena(filename, file_id, user_phone, sms)
-            self.delete_file(file_id)
-
+##### Результат работы сканирования
 ```
+➜ docker exec -ti calibre-web  calibredb add /scan --add -r --with-library  /books
 
-## output of scan books
-
-```
-➜ docker exec -ti calibre-web  calibredb add /scan --add -r --with-library  /books                              qt.gui.icc: Unsupported ICC profile class 70727472
+qt.gui.icc: Unsupported ICC profile class 70727472
 The following books were not added as they already exist in the database (see --duplicates option):
   Один день Ивана Денисовича
     /scan/A_Solzhenitsyn_-_Odin_den_Ivana_Denisovicha.epub
@@ -58,32 +31,63 @@ The following books were not added as they already exist in the database (see --
     /scan/Солженицын Александр. Архипелаг ГУЛАГ.fb2
 Added book ids: 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216
 ```
+Я извлекаю последнюю строку, получаю id книг, которые были добавлены, и по ним получаю метаинформацию из БД `metadata.db`
 
+Поиск по базе данных книг недооформленные книги.
+Собрал единый SQL запрос:
+```sql
+SELECT
+    id,
+    title,
+    (   SELECT bal.id|| ' '|| name 
+        FROM books_authors_link AS bal 
+        JOIN authors ON(author = authors.id) 
+        WHERE book = books.id
+    ) authors,
+    (   SELECT lang.lang_code 
+        FROM books_languages_link AS bll 
+        JOIN languages AS lang ON (bll.lang_code = lang.id) 
+        WHERE book = books.id 
+    ) langauge,
+    (   SELECT name 
+        FROM publishers 
+        WHERE publishers.id IN (
+            SELECT publisher 
+            FROM books_publishers_link 
+            WHERE book=books.id)
+    ) publisher,
+    timestamp,
+    (   SELECT name 
+        FROM tags 
+        WHERE tags.id IN (
+            SELECT tag 
+            FROM books_tags_link 
+            WHERE book=books.id)
+    ) tags,
+    (select text FROM comments WHERE book=books.id) comments,
+    sort,
+    author_sort,
+    pubdate
+from books;
 ```
-# Кнопка edit_commands:
-#     add_command: DONE
-#         enter command, name, comment, if editable put 1 else 0
-#         put inl_btn: cancel
-#         if allright: put new command into DB
-#         not work! 
-#         /add_cmd - and after that put new command
-#     edit_commands: NOT YET
-#         select command to edit: select editable commands from DB to inl_kb
-#         tap on any command: what exactly you whant to change: show inl_kb: command, name, comment, all
-#         enter new value: check if value correct
-#         edit command in DB
-#         answer with inl_kb commands
-#     del_command: DONE
-#         select command to delete: show editable commands from DB
-#         after command selected: are you sure? inl_kb: yes, no
-#     cancel:
-#         go back to comands list
-```
+Если одно из полей пустое, значит надо оформить ее как полагается. Возвращает в чат первую пятерку книг, оформленных как ссылки, чтобы я мог сразу приступить к найденной книге. Так же внизу присутствуют две инлайн кнопки, следующие 5 и предыдущие 5.
+
+### В планах реализовать:
+- Проверка статуса `fail2ban`
+    > Возвращает список заблокированных ip аздресов
+    > Возможность разблокировки этого адреса
+- Слежение за сертификатами от `certbot`
+    > При подзоде срока истечении сертификата, присылал сообщение с напоминанием, и инлайн кнопкой для запуска обновления сертификатов.
+- Поиск на rutracker.org и взаимодействие с установленным `transmission`
+
+
+## Выполнение команды без запрашивания пароля
+
 Чтобы команда исполнялась без пароля и это было более-менее сесурно надо:
 1. записать команду в shell скрипт и сохранить ее `echo sudo some cmd -run`
 1. Присвить права на исполнение только руту `sudo chown root:root /path/to/script.sh && sudo chmod 700 /path/to/script.sh`
 1. Выполнить команду `sudo visudo` с помощью Nano модно будет редактировать документ
-1. В конец добавить строку: `fantomas  ALL=(ALL) NOPASSWD: /path/to/script.sh`
+1. В конец добавить строку: `username  ALL=(ALL) NOPASSWD: /path/to/script.sh`
     > Чтобы изменить Nano на другой редактор надо выполнить команду
     > ` sudo update-alternatives --config editor`
     ```

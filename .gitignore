@@ -4,5 +4,6 @@ objects/*
 *.db
 *.log
 *.sh
+*.bk
 config.ini
 testbot.py
