@@ -11,6 +11,7 @@
 import logging
 import asyncio
 import aiosqlite
+from async_class import AsyncClass
 
 from loader import config
 from database import run_select
@@ -18,12 +19,15 @@ from database import run_select
 _DB = config.get_param('calibre', 'database')
 _QUANT = int(config.get_param('calibre', 'show_books_quantity'))
 
-class _bidirectional_iterator(object):
+
+class bidirectional_iterator(AsyncClass):
     ''' объект, который возвращает 5 следующих
         и 5 предыдущих книг
+        Использовадась библиотека, которая создает асинхронный класс
+        https://pypi.org/project/async-class/
     '''
-    def __init__(self, collection):
-        self.collection = collection
+    async def __ainit__(self):
+        self.collection = await _books_info()
         self.index = 0
         self.step = _QUANT
         self.start = 0
@@ -31,13 +35,13 @@ class _bidirectional_iterator(object):
         self.prev_res  = None
         self.next_res  = None
 
-    def reset(self):
+    async def reset(self):
         ''' Сброс до заводских настроек
             Используется во время нового вызова команды Books
         '''
-        self.__init__(self.collection)
+        await self.__ainit__()
 
-    def __next(self):
+    async def __next(self):
         ''' Следующая пятерка
             В случае если срез выходит за пределы списка,
             питон ввозвращает пустой список
@@ -66,7 +70,7 @@ class _bidirectional_iterator(object):
 
         return result
 
-    def __prev(self):
+    async def __prev(self):
         ''' Предыдущая пятерка
             сделать шаг назад
             если старт меньше нуля raise StopIteration
@@ -83,23 +87,23 @@ class _bidirectional_iterator(object):
         self.next_res = res
         return res
 
-    def next(self):
-        res = self.__next()
+    async def next(self):
+        res = await self.__next()
         if res != self.next_res:
             return res
         else:
-            res = self.__next()
+            res = await self.__next()
             return res
 
-    def prev(self):
-        res = self.__prev()
+    async def prev(self):
+        res = await self.__prev()
         if res != self.prev_res:
             return res
         else:
-            res = self.__prev()
+            res = await self.__prev()
             return res
 
-async def books_info():
+async def _books_info():
     q = '''
         select
             id,
@@ -124,8 +128,31 @@ async def books_info():
             id_book_name = (num, res[0], res[1])
             books_res.append(id_book_name)
 
-    # Возвращает объект, который имеет два вызова
-    # next() следующие 5
-    # и prev() предыдущие 5 книг из списка
-    bi = _bidirectional_iterator(books_res)
-    return bi
+    # Возвращает список, с которыми потом работает bi
+    return books_res
+
+async def _main():
+    bi = await bidirectional_iterator()
+    res = await bi.next()
+    print(res)
+    res = await bi.next()
+    print(res)
+
+    await bi.reset()
+
+    res = await bi.next()
+    print(res)
+    res = await bi.next()
+    print(res)
+
+if __name__ == '__main__':
+    async def run_select(db, query, vals=None):
+        async with aiosqlite.connect(db) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, vals)
+                await conn.commit()
+                res = await cur.fetchall()
+                return res
+
+    _loop = asyncio.new_event_loop()
+    bi = _loop.run_until_complete(_main())

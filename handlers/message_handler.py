@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 from collections import namedtuple
 
 from keyboards import get_cmd_for_ikb, get_go_next_ikb
-from scripts import books_info
+from scripts import bidirectional_iterator
 from loader import dp, config, go_next
 
 
@@ -12,8 +12,9 @@ _RUN_COMMANDS = config.get_param('buttons', 'run_commands')
 _BOOKS = config.get_param('buttons', 'Books')
 _URL = config.get_param('calibre', 'url')
 
-_loop = asyncio.get_event_loop()
-_GEN = _loop.run_until_complete(books_info())
+
+_loop = asyncio.new_event_loop()
+_GEN = _loop.run_until_complete(bidirectional_iterator())
 
 async def incoming_message_handler(msg: Message):
     ''' Обработчик всех входящих сообщений
@@ -25,8 +26,8 @@ async def incoming_message_handler(msg: Message):
         await msg.answer(answ, reply_markup=inl_kb)
 
     elif msg.text == _BOOKS:
-        _GEN.reset()
-        await send_book_info(msg, _GEN.next())
+        await _GEN.reset()
+        await send_book_info(msg, await _GEN.next())
 
     else:
         answ = 'try again'
@@ -57,7 +58,7 @@ async def book_handler(query: CallbackQuery, callback_data: dict):
     action = callback_data.get('action')
     if action == 'go_next':
         try:
-            data = _GEN.next()
+            data = await _GEN.next()
         except StopIteration:
             logging.info(f"StopIteration")
             await query.answer(text='Это была последняя позиция', show_alert=True)
@@ -68,7 +69,7 @@ async def book_handler(query: CallbackQuery, callback_data: dict):
 
     else:
         try:
-            data = _GEN.prev()
+            data = await _GEN.prev()
         except StopIteration:
             logging.info(f"StopIteration")
             await query.answer(text='Это была первая позиция', show_alert=True)

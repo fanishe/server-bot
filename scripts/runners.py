@@ -40,11 +40,15 @@ async def full_output_to_user(back, command: str, edit=True):
             await back.answer(formatted, parse_mode='MarkdownV2')
 
 async def scan_books(cb: types.CallbackQuery, command: str):
+    ''' Запускает команду на исполнение
+        sudo /path/to/server-bot/scripts/calibrescan.sh
+        ВОзвращает вывод:
+        qt.gui.icc: Unsupported ICC profile class 70727472
+        The following books were not added as they already exist in the database (see --duplicates option):
+          ...
+        Added book ids: 199, 200, 201, ...
     '''
-        # async def scan_books(output):
-        sudo /hdd/gh/server-bot/scripts/calibrescan.sh
-    '''
-    # command = 'sudo /hdd/gh/server-bot/scripts/calibrescan.sh'
+    # command = 'sudo /path/to/server-bot/scripts/calibrescan.sh'
     output = check_output(
             command,
             stderr=subprocess.STDOUT,
