@@ -1,9 +1,10 @@
 import asyncio
 import aiosqlite
 import subprocess
+import logging
 from subprocess import check_output
 from collections import namedtuple
-import logging
+from dateutil import parser
 
 from aiogram import types
 
@@ -38,6 +39,45 @@ async def full_output_to_user(back, command: str, edit=True):
             await back.edit_text(formatted, parse_mode='MarkdownV2')
         else:
             await back.answer(formatted, parse_mode='MarkdownV2')
+
+async def check_certs(cb: types.CallbackQuery, command: str):
+    ''' Start validating date in my certs
+        part of output
+        [ ... ]
+        Validity
+           Not Before: Jun 17 08:11:22 2021 GMT
+           Not After : Sep 15 08:11:21 2021 GM
+        [ ... ]
+    '''
+    before = 'Jan 01 00:00:00 1900 GMT'
+    after = 'Jan 02 00:00:00 1900 GM'
+
+    output = check_output(
+            command,
+            stderr=subprocess.STDOUT,
+            shell=True)
+
+    if not output:
+        pass # ?? raise Error EmptyOutput
+
+    output = output.decode().split('\n')
+    for line in output:
+        if 'Not Before:' in line:
+            before = await _get_datetime(line)
+
+        if 'Not After :' in line:
+            after = await _get_datetime(line)
+
+    msg = f'Сертификат\n'
+    msg += f'Начинается - <pre>{before}</pre>\n'
+    msg += f'Заканчивается - <pre>{after}</pre>'
+
+    await cb.message.edit_text(msg, parse_mode='HTML')
+
+async def _get_datetime(row: str):
+    return parser.parse(
+            row.split(': ')[1]
+            ).strftime("%d-%m-%Y, %H:%M:%S")
 
 async def scan_books(cb: types.CallbackQuery, command: str):
     ''' Запускает команду на исполнение

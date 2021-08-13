@@ -27,7 +27,7 @@ class bidirectional_iterator(AsyncClass):
         https://pypi.org/project/async-class/
     '''
     async def __ainit__(self):
-        self.collection = await _books_info()
+        self.collection = await __class__._books_info()
         self.index = 0
         self.step = _QUANT
         self.start = 0
@@ -103,47 +103,48 @@ class bidirectional_iterator(AsyncClass):
             res = await self.__prev()
             return res
 
-async def _books_info():
-    q = '''
-        select
-            id,
-            title,
-            (select bal.id|| ' '|| name FROM books_authors_link AS bal JOIN authors ON(author = authors.id) WHERE book = books.id) authors,
-            (select lang.lang_code from books_languages_link as bll join languages as lang on (bll.lang_code = lang.id) WHERE book = books.id ) langauge,
-            (select name FROM publishers WHERE publishers.id IN (SELECT publisher from books_publishers_link WHERE book=books.id)) publisher,
-            timestamp,
-            (select name FROM tags WHERE tags.id IN (SELECT tag from books_tags_link WHERE book=books.id)) tags,
-            (select text FROM comments WHERE book=books.id) comments,
-            sort,
-            author_sort,
-            pubdate
-        from books;
-    '''
-    result = await run_select(_DB, q)
-    books_res = []
-    num = 0
-    for res in result:
-        if None in res:
-            num += 1
-            id_book_name = (num, res[0], res[1])
-            books_res.append(id_book_name)
+    @staticmethod
+    async def _books_info():
+        q = '''
+            select
+                id,
+                title,
+                (select bal.id|| ' '|| name FROM books_authors_link AS bal JOIN authors ON(author = authors.id) WHERE book = books.id) authors,
+                (select lang.lang_code from books_languages_link as bll join languages as lang on (bll.lang_code = lang.id) WHERE book = books.id ) langauge,
+                (select name FROM publishers WHERE publishers.id IN (SELECT publisher from books_publishers_link WHERE book=books.id)) publisher,
+                timestamp,
+                (select name FROM tags WHERE tags.id IN (SELECT tag from books_tags_link WHERE book=books.id)) tags,
+                (select text FROM comments WHERE book=books.id) comments,
+                sort,
+                author_sort,
+                pubdate
+            from books;
+        '''
+        result = await run_select(_DB, q)
+        books_res = []
+        num = 0
+        for res in result:
+            if None in res:
+                num += 1
+                id_book_name = (num, res[0], res[1])
+                books_res.append(id_book_name)
 
-    # Возвращает список, с которыми потом работает bi
-    return books_res
+        # Возвращает список, с которыми потом работает bi
+        return books_res
 
-async def _main():
+
+async def _test_bi():
     bi = await bidirectional_iterator()
-    res = await bi.next()
-    print(res)
-    res = await bi.next()
-    print(res)
+    print(await bi.next())
+    print(await bi.next())
 
     await bi.reset()
 
-    res = await bi.next()
-    print(res)
-    res = await bi.next()
-    print(res)
+    print(await bi.next())
+    print(await bi.next())
+    print(await bi.prev())
+    print(await bi.next())
+    print(await bi.prev())
 
 if __name__ == '__main__':
     async def run_select(db, query, vals=None):
@@ -155,4 +156,4 @@ if __name__ == '__main__':
                 return res
 
     _loop = asyncio.new_event_loop()
-    bi = _loop.run_until_complete(_main())
+    bi = _loop.run_until_complete(_test_bi())
